@@ -4,6 +4,7 @@ const pdfParse = require("pdf-parse");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
+const mammoth = require("mammoth");
 
 const app = express();
 const port = 5000;
@@ -26,15 +27,21 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
     // Check the file type (you can add more conditions for other file types)
     if (req.file.mimetype === "application/pdf") {
-      // Extract text from PDF using pdf-parse
       const pdfData = await pdfParse(req.file.buffer);
       text = pdfData.text;
     } else if (req.file.mimetype === "text/plain") {
-      // Extract text from plain text file
       text = req.file.buffer.toString("utf-8");
+    } else if (
+      req.file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+      text = result.value;
     } else {
       return res.status(400).json({ error: "Unsupported file type." });
     }
+
+    console.log(text);
 
     // Send extracted text back to the frontend
     res.json({ text: text });
